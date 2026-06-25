@@ -206,7 +206,7 @@ async function analyze(code,hint){
     }));
     setLoad('AI 分析展望與業務結構…');
     const aiPrompt=`台股股票代號「${code}」，公司名稱為「${hint||code}」，請針對「${hint||code}」這間公司提供以下JSON，只回傳純JSON不含任何說明或markdown：{"stockName":"${hint||code}","industry":"所屬產業類別","isAIRelated":true,"businessSegments":[{"name":"業務名稱","percentage":數字}],"industryRank":{"rank":數字,"total":數字},"companyOutlook":"公司未來三年展望約80字","industryOutlook":"產業未來三年展望約80字"} isAIRelated填true或false，businessSegments百分比總和必須=100。`;
-    const aiRes=await fetch('https://api.anthropic.com/v1/messages',{
+    const aiRes=await fetch('/api/chat', {
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:800,messages:[{role:'user',content:aiPrompt}]})
     });
