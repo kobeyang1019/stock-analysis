@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>台股基本面分析</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#071828;color:#e8f4fd;font-family:'Inter','Noto Sans TC',system-ui,sans-serif;min-height:100vh}
+@keyframes spin{to{transform:rotate(360deg)}}
+#hdr{background:#0a1f35;border-bottom:1px solid #1a3a5c;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;position:sticky;top:0;z-index:100}
+#logo{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:700}
+#logo-icon{width:32px;height:32px;background:linear-gradient(135deg,#1565C0,#4FC3F7);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
+#searchrow{display:flex;gap:8px;flex-wrap:wrap}
+#sinput,#ninput{background:#0d2137;border:1px solid #1a3a5c;border-radius:8px;color:#e8f4fd;padding:8px 14px;font-size:14px;width:140px;outline:none}
+#sinput:focus,#ninput:focus{border-color:#4FC3F7}
+#sbtn{background:linear-gradient(135deg,#1565C0,#4FC3F7);border:none;border-radius:8px;color:#fff;padding:8px 18px;font-size:14px;cursor:pointer;font-weight:600}
+#sbtn:disabled{opacity:0.5;cursor:not-allowed}
+#layout{display:flex;min-height:calc(100vh - 61px)}
+#sidebar{width:170px;background:#0a1f35;border-right:1px solid #1a3a5c;padding:20px 0;flex-shrink:0}
+.slabel{color:#4a7a9b;font-size:11px;letter-spacing:1px;padding:0 16px 10px}
+.sitem{padding:10px 16px;cursor:pointer;border-left:3px solid transparent;transition:all .15s}
+.sitem:hover{background:rgba(79,195,247,0.05)}
+.sitem.active{background:rgba(79,195,247,0.1);border-left-color:#4FC3F7}
+.sitem .sc{font-size:14px;font-weight:600;color:#e8f4fd}
+.sitem.active .sc{color:#4FC3F7}
+.sitem .sn{font-size:12px;color:#7aa3c8;margin-top:2px}
+#main{flex:1;padding:24px;overflow-y:auto}
+#empty{text-align:center;padding-top:80px;color:#4a7a9b}
+#empty .icon{font-size:48px;margin-bottom:16px}
+#loading{display:none;text-align:center;padding:60px 0}
+.spinner{width:40px;height:40px;border:3px solid #1e3a5f;border-top-color:#4FC3F7;border-radius:50%;animation:spin .9s linear infinite;margin:0 auto 16px}
+#loadmsg{color:#7aa3c8;font-size:14px}
+#errbox{display:none;background:rgba(244,67,54,0.1);border:1px solid #c62828;border-radius:10px;padding:16px;color:#ef9a9a;margin-bottom:12px}
+#content{display:none}
+#titlerow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+#stkname{font-size:26px;font-weight:800}
+.tag{font-size:12px;padding:3px 10px;border-radius:6px;border:1px solid}
+.tag-code{border-color:#1a3a5c;color:#7aa3c8;background:#1a3a5c}
+.tag-ind{border-color:#FFB74D;color:#FFB74D;background:rgba(255,183,77,0.15)}
+#aibadge{display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:5px 14px;border-radius:20px;border:1px solid;margin-bottom:20px}
+.sec-title{display:flex;align-items:center;gap:10px;margin:24px 0 12px}
+.sec-bar{width:3px;height:18px;background:#4FC3F7;border-radius:2px}
+.sec-title h3{color:#e8f4fd;font-size:15px;font-weight:600;margin:0}
+.cards-row{display:flex;gap:16px;flex-wrap:wrap}
+#piecard,#rankcard{background:#0d2137;border:1px solid #1a3a5c;border-radius:12px;padding:20px}
+#piecard{flex:1 1 300px}
+#rankcard{flex:1 1 220px}
+canvas{display:block;width:100%;height:220px}
+#pielegend{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.li{display:flex;align-items:center;gap:6px;font-size:12px;color:#b0cfe8}
+.ldot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+#rankinner{display:flex;align-items:center;gap:16px;margin-top:8px}
+#rnbadge{background:linear-gradient(135deg,#1565C0,#4FC3F7);border-radius:10px;padding:12px 20px;text-align:center}
+#rnnum{color:#fff;font-size:28px;font-weight:800}
+#rnlbl{color:rgba(255,255,255,0.7);font-size:11px}
+.rntotal{color:#e8f4fd;font-size:14px}
+.rnpct{color:#7aa3c8;font-size:12px;margin-top:4px}
+#rnbarbg{background:#1a3a5c;border-radius:4px;height:6px;width:140px;margin-top:10px}
+#rnbar{background:#4FC3F7;height:6px;border-radius:4px;transition:width .6s ease}
+.out-row{display:flex;gap:16px;flex-wrap:wrap}
+.outcard{background:#0d2137;border:1px solid #1a3a5c;border-radius:10px;padding:18px;flex:1 1 260px}
+.outcard .oh{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.outcard .ot{color:#4FC3F7;font-size:13px;font-weight:600}
+.outcard p{color:#b0cfe8;font-size:13px;line-height:1.8}
+#tblcard{background:#0d2137;border:1px solid #1a3a5c;border-radius:12px;padding:16px;overflow-x:auto}
+#fintbl{width:100%;border-collapse:collapse;font-size:13px}
+#fintbl th{color:#7aa3c8;text-align:left;padding:8px 12px;border-bottom:1px solid #1a3a5c;white-space:nowrap;font-weight:500}
+#fintbl th.r{text-align:right;color:#4FC3F7}
+#fintbl td{padding:9px 12px;border-bottom:1px solid #0f2944;color:#b0cfe8;white-space:nowrap}
+#fintbl td.r{text-align:right;color:#e8f4fd;font-weight:500}
+#fintbl tr:nth-child(even){background:rgba(79,195,247,0.03)}
+.datasrc{font-size:11px;color:#4a7a9b;margin-top:8px;text-align:right}
+</style>
+</head>
+<body>
+<div id="hdr">
+  <div id="logo"><div id="logo-icon">📊</div>台股基本面分析</div>
+  <div id="searchrow">
+    <input id="sinput" type="text" placeholder="股號（如 3167）"/>
+    <input id="ninput" type="text" placeholder="公司名稱（如 大量）"/>
+    <button id="sbtn" onclick="doSearch()">分析</button>
+  </div>
+</div>
+<div id="layout">
+  <div id="sidebar">
+    <div class="slabel">關注股票</div>
+    <div class="sitem" onclick="fromSidebar('2330','台積電',this)"><div class="sc">2330</div><div class="sn">台積電</div></div>
+    <div class="sitem" onclick="fromSidebar('2317','鴻海',this)"><div class="sc">2317</div><div class="sn">鴻海</div></div>
+    <div class="sitem" onclick="fromSidebar('2454','聯發科',this)"><div class="sc">2454</div><div class="sn">聯發科</div></div>
+    <div class="sitem" onclick="fromSidebar('2382','廣達',this)"><div class="sc">2382</div><div class="sn">廣達</div></div>
+    <div class="sitem" onclick="fromSidebar('2308','台達電',this)"><div class="sc">2308</div><div class="sn">台達電</div></div>
+    <div class="sitem" onclick="fromSidebar('3167','大量',this)"><div class="sc">3167</div><div class="sn">大量</div></div>
+  </div>
+  <div id="main">
+    <div id="empty"><div class="icon">📈</div><p>選擇左側股票，或輸入股號＋公司名稱開始分析</p></div>
+    <div id="loading"><div class="spinner"></div><p id="loadmsg">載入資料中…</p></div>
+    <div id="errbox"></div>
+    <div id="content">
+      <div id="titlerow">
+        <span id="stkname"></span>
+        <span class="tag tag-code" id="tagcode"></span>
+        <span class="tag tag-ind" id="tagind"></span>
+      </div>
+      <div id="aibadge"></div>
+      <div class="cards-row">
+        <div id="piecard">
+          <div class="sec-title"><div class="sec-bar"></div><h3>營業項目佔比</h3></div>
+          <canvas id="piecanvas" width="400" height="220"></canvas>
+          <div id="pielegend"></div>
+        </div>
+        <div id="rankcard">
+          <div class="sec-title"><div class="sec-bar"></div><h3>產業排名</h3></div>
+          <div id="rankinner">
+            <div id="rnbadge"><div id="rnnum"></div><div id="rnlbl">產業排名</div></div>
+            <div><div class="rntotal" id="rntotal"></div><div class="rnpct" id="rnpct"></div><div id="rnbarbg"><div id="rnbar"></div></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="sec-title"><div class="sec-bar"></div><h3>未來三年展望</h3></div>
+      <div class="out-row">
+        <div class="outcard"><div class="oh"><span>🏢</span><span class="ot">公司展望</span></div><p id="compout"></p></div>
+        <div class="outcard"><div class="oh"><span>🌐</span><span class="ot">產業展望</span></div><p id="indout"></p></div>
+      </div>
+      <div class="sec-title"><div class="sec-bar"></div><h3>三年財務數據（FinMind 真實資料）</h3></div>
+      <div id="tblcard">
+        <table id="fintbl"><thead id="fthead"></thead><tbody id="ftbody"></tbody></table>
+        <div class="datasrc" id="datasrc"></div>
+      </div>
+      <div style="height:40px"></div>
+    </div>
+  </div>
+</div>
+<script>
+const TOKEN='eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoia29iZXlhbmcxMDE5IiwiZW1haWwiOiJrb2JleXRkQGdtYWlsLmNvbSIsInRva2VuX3ZlcnNpb24iOjB9.W1wg5KUh8AWVzEHRdN5eIaFnqaQxgGpy8s9YWwl0a94';
+const COLORS=['#4FC3F7','#81C784','#FFB74D','#F06292','#CE93D8','#80DEEA','#A5D6A7','#FFCC80'];
+const METRICS=['營收(億)','稅後淨利(億)','EPS(元)','資本支出(億)','毛利率(%)','稅後淨利率(%)','存貨周轉率','負債比率(%)'];
+let activeItem=null;
+document.getElementById('sinput').addEventListener('keydown',e=>{if(e.key==='Enter')doSearch();});
+document.getElementById('ninput').addEventListener('keydown',e=>{if(e.key==='Enter')doSearch();});
+document.getElementById('sinput').addEventListener('input',e=>{e.target.value=e.target.value.toUpperCase();});
+function fromSidebar(code,name,el){
+  if(activeItem)activeItem.classList.remove('active');
+  el.classList.add('active');activeItem=el;
+  document.getElementById('sinput').value=code;
+  document.getElementById('ninput').value=name;
+  analyze(code,name);
+}
+function doSearch(){
+  const code=document.getElementById('sinput').value.trim();
+  const name=document.getElementById('ninput').value.trim();
+  if(!code)return;
+  if(activeItem){activeItem.classList.remove('active');activeItem=null;}
+  analyze(code,name||null);
+}
+function setState(s){
+  document.getElementById('empty').style.display=s==='empty'?'block':'none';
+  document.getElementById('loading').style.display=s==='loading'?'block':'none';
+  document.getElementById('errbox').style.display=s==='error'?'block':'none';
+  document.getElementById('content').style.display=s==='content'?'block':'none';
+}
+function setLoad(msg){document.getElementById('loadmsg').textContent=msg;}
+async function finmind(dataset,stockId,startDate){
+  const url=`https://api.finmindtrade.com/api/v4/data?dataset=${dataset}&data_id=${stockId}&start_date=${startDate}&token=${TOKEN}`;
+  const r=await fetch(url);const j=await r.json();return j.data||[];
+}
+async function analyze(code,hint){
+  setState('loading');setLoad('連接 FinMind 資料庫…');
+  document.getElementById('errbox').innerHTML='';
+  document.getElementById('sbtn').disabled=true;
+  try{
+    setLoad('下載財務報表…');
+    const[income,balance,cashflow]=await Promise.all([
+      finmind('TaiwanStockFinancialStatements',code,'2022-01-01'),
+      finmind('TaiwanStockBalanceSheet',code,'2022-01-01'),
+      finmind('TaiwanStockCashFlowsStatement',code,'2022-01-01'),
+    ]);
+    if(!income||income.length===0)throw new Error('查無此股票代號資料，請確認股號是否正確（僅支援台股）');
+    const years=['2022','2023','2024'];
+    function getAnnual(data,type){
+      const res={};
+      years.forEach(y=>{
+        const rows=data.filter(d=>d.date&&d.date.startsWith(y)&&d.type===type);
+        res[y]=rows.length>0?rows[rows.length-1].value:null;
+      });
+      return res;
+    }
+    const rev=getAnnual(income,'營業收入');
+    const net=getAnnual(income,'本期淨利（淨損）');
+    const epsD=getAnnual(income,'基本每股盈餘（元）');
+    const grossP=getAnnual(income,'營業毛利（毛損）');
+    const capex=getAnnual(cashflow,'取得不動產、廠房及設備');
+    const totAsset=getAnnual(balance,'資產總計');
+    const totLiab=getAnnual(balance,'負債總計');
+    const inv=getAnnual(balance,'存貨');
+    function toB(v){return v!=null?(Math.round(v/1e7)/10):null;}
+    function pct(a,b){return(a!=null&&b&&b!==0)?Math.round(a/b*1000)/10:null;}
+    function safe(v,d=1){return v!=null?Number(v).toFixed(d):'N/A';}
+    const finRows=years.map(y=>({
+      rev:toB(rev[y]),net:toB(net[y]),
+      eps:epsD[y]!=null?Number(epsD[y]).toFixed(2):null,
+      capex:toB(Math.abs(capex[y]||0)),
+      grossPct:pct(grossP[y],rev[y]),netPct:pct(net[y],rev[y]),
+      invTurn:(inv[y]&&rev[y])?Math.round(rev[y]/(inv[y]||1)*10)/10:null,
+      debtRatio:pct(totLiab[y],totAsset[y]),
+    }));
+    setLoad('AI 分析展望與業務結構…');
+    const aiPrompt=`台股股票代號「${code}」，公司名稱為「${hint||code}」，請針對「${hint||code}」這間公司提供以下JSON，只回傳純JSON不含任何說明或markdown：{"stockName":"${hint||code}","industry":"所屬產業類別","isAIRelated":true,"businessSegments":[{"name":"業務名稱","percentage":數字}],"industryRank":{"rank":數字,"total":數字},"companyOutlook":"公司未來三年展望約80字","industryOutlook":"產業未來三年展望約80字"} isAIRelated填true或false，businessSegments百分比總和必須=100。`;
+    const aiRes=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:800,messages:[{role:'user',content:aiPrompt}]})
+    });
+    const aiJson=await aiRes.json();
+    const aiText=(aiJson.content||[]).map(b=>b.text||'').join('');
+    const ai=JSON.parse(aiText.replace(/```json|```/g,'').trim());
+    document.getElementById('stkname').textContent=ai.stockName;
+    document.getElementById('tagcode').textContent=code;
+    document.getElementById('tagind').textContent=ai.industry;
+    const badge=document.getElementById('aibadge');
+    if(ai.isAIRelated){
+      badge.style.cssText='display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:5px 14px;border-radius:20px;border:1px solid #4FC3F7;background:rgba(79,195,247,0.12);color:#4FC3F7;margin-bottom:20px';
+      badge.innerHTML='🤖 與 AI 產業相關';
+    }else{
+      badge.style.cssText='display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:5px 14px;border-radius:20px;border:1px solid #555;background:rgba(120,120,120,0.12);color:#aaa;margin-bottom:20px';
+      badge.innerHTML='📦 非 AI 直接相關';
+    }
+    drawPie(ai.businessSegments);
+    const rp=Math.round((1-ai.industryRank.rank/ai.industryRank.total)*100);
+    document.getElementById('rnnum').textContent='#'+ai.industryRank.rank;
+    document.getElementById('rntotal').textContent='共 '+ai.industryRank.total+' 家同業';
+    document.getElementById('rnpct').textContent='超越 '+rp+'% 同業';
+    setTimeout(()=>{document.getElementById('rnbar').style.width=rp+'%';},100);
+    document.getElementById('compout').textContent=ai.companyOutlook;
+    document.getElementById('indout').textContent=ai.industryOutlook;
+    const thead=document.getElementById('fthead');
+    const tbody=document.getElementById('ftbody');
+    thead.innerHTML='<tr><th style="width:120px">指標</th>'+years.map(y=>`<th class="r">${y}</th>`).join('')+'</tr>';
+    const vals=[
+      finRows.map(r=>r.rev!=null?safe(r.rev)+'億':'N/A'),
+      finRows.map(r=>r.net!=null?safe(r.net)+'億':'N/A'),
+      finRows.map(r=>r.eps!=null?safe(r.eps,2)+'元':'N/A'),
+      finRows.map(r=>r.capex!=null?safe(r.capex)+'億':'N/A'),
+      finRows.map(r=>r.grossPct!=null?safe(r.grossPct)+'%':'N/A'),
+      finRows.map(r=>r.netPct!=null?safe(r.netPct)+'%':'N/A'),
+      finRows.map(r=>r.invTurn!=null?safe(r.invTurn):'N/A'),
+      finRows.map(r=>r.debtRatio!=null?safe(r.debtRatio)+'%':'N/A'),
+    ];
+    tbody.innerHTML=METRICS.map((m,i)=>`<tr><td>${m}</td>${vals[i].map(v=>`<td class="r">${v}</td>`).join('')}</tr>`).join('');
+    document.getElementById('datasrc').textContent='財務數據來源：FinMind 台股資料庫｜展望分析：AI 生成';
+    setState('content');
+  }catch(e){
+    document.getElementById('errbox').innerHTML='⚠️ '+e.message;
+    setState('error');
+  }
+  document.getElementById('sbtn').disabled=false;
+}
+function drawPie(segs){
+  const canvas=document.getElementById('piecanvas');
+  const ctx=canvas.getContext('2d');
+  const W=canvas.offsetWidth||400,H=220;
+  canvas.width=W;canvas.height=H;
+  ctx.clearRect(0,0,W,H);
+  const cx=W/2,cy=H/2,r=Math.min(W,H)/2-12;
+  let start=-Math.PI/2;
+  const total=segs.reduce((s,g)=>s+g.percentage,0);
+  segs.forEach((seg,i)=>{
+    const angle=(seg.percentage/total)*Math.PI*2;
+    ctx.beginPath();ctx.moveTo(cx,cy);
+    ctx.arc(cx,cy,r,start,start+angle);
+    ctx.closePath();
+    ctx.fillStyle=COLORS[i%COLORS.length];ctx.fill();
+    ctx.strokeStyle='#071828';ctx.lineWidth=2;ctx.stroke();
+    if(seg.percentage>9){
+      const mid=start+angle/2;
+      ctx.fillStyle='#fff';ctx.font='bold 11px sans-serif';
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(seg.percentage+'%',cx+Math.cos(mid)*r*.65,cy+Math.sin(mid)*r*.65);
+    }
+    start+=angle;
+  });
+  const legend=document.getElementById('pielegend');
+  legend.innerHTML=segs.map((seg,i)=>`<div class="li"><div class="ldot" style="background:${COLORS[i%COLORS.length]}"></div>${seg.name} ${seg.percentage}%</div>`).join('');
+}
+</script>
+</body>
+</html>
